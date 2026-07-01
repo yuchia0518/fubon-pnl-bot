@@ -1,4 +1,6 @@
 import os
+import sys
+import traceback
 import datetime
 from dotenv import load_dotenv
 from src.crypto_utils import decrypt
@@ -41,10 +43,14 @@ def main():
                 fubon_api.login_and_fetch_portfolio()
             )
 
+            today_inv = today_inv or {}
+            today_txs = today_txs or []
+
             y_bal = db.get_yesterday_balance(u["id"])
             yesterday_inv = {}
             if y_bal and "holdings_json" in y_bal:
-                yesterday_inv = y_bal["holdings_json"]
+                yesterday_inv = y_bal["holdings_json"] or {}
+            yesterday_inv = yesterday_inv or {}
 
             pnl_report = calculate_daily_pnl(
                 yesterday_inv, today_inv, today_txs
@@ -54,16 +60,22 @@ def main():
                 item["qty"] * item["price"] for item in today_inv.values()
             )
 
+            print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}")
+            print(f"     每日損益: {pnl_report}")
+
             msg = format_report_message(
                 u["name"], pnl_report, total_market_val, total_unrealized_pnl
             )
+            print(f"     正在推送 LINE 給: {u['line_user_id']}")
             send_line_report(u["line_user_id"], msg, line_token)
 
             db.insert_daily_balance(
                 u["id"], today_str, total_market_val, total_unrealized_pnl
             )
+            print(f"     ✅ {u['name']} 處理完成")
 
         except Exception as e:
+            traceback.print_exc()
             print(f"處理親友 {u['name']} 時發生錯誤: {e}")
 
 
