@@ -17,7 +17,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        cache: pip
+        cache: 'pip'
 
     - name: Install Dependencies
       run: |
@@ -25,10 +25,24 @@ jobs:
         pip install -r requirements.txt
 
     - name: Download & Install Fubon Neo SDK
+      shell: bash
       run: |
-        curl -L -o fubon_neo.zip "https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.2.8-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.zip"
+        set -e
+        echo "下載 Fubon Neo SDK..."
+        curl -f -L -o fubon_neo.zip "https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.2.8-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.zip"
+        echo "解壓縮..."
         unzip -o fubon_neo.zip
-        pip install fubon_neo-*.whl
+        echo "解壓後的檔案:"
+        ls -la *.whl 2>/dev/null || echo "找不到 .whl 檔案"
+        WHL_FILE=$(ls fubon_neo-*.whl | head -1)
+        if [ -n "$WHL_FILE" ]; then
+          echo "安裝 $WHL_FILE ..."
+          pip install "$WHL_FILE"
+          echo "✅ Fubon Neo SDK 安裝完成"
+        else
+          echo "❌ 找不到 .whl 檔案"
+          exit 1
+        fi
         rm -f fubon_neo.zip fubon_neo-*.whl
 
     - name: Run P&L Bot
