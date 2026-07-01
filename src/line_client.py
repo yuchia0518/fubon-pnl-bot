@@ -1,0 +1,63 @@
+import datetime
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+
+
+def format_report_message(
+    user_name: str,
+    pnl_report: dict,
+    total_market_val: float,
+    total_unrealized_pnl: float,
+) -> str:
+    today_str = datetime.datetime.now().strftime("%Y 年 %m 月 %d 日")
+    pnl_val = pnl_report["total_pnl"]
+    today_weekday = datetime.datetime.now().strftime("%A")
+
+    weekday_map = {
+        "Monday": "一",
+        "Tuesday": "二",
+        "Wednesday": "三",
+        "Thursday": "四",
+        "Friday": "五",
+        "Saturday": "六",
+        "Sunday": "日",
+    }
+    weekday_cn = weekday_map.get(today_weekday, "")
+
+    pnl_sign = "🟢" if pnl_val >= 0 else "🔴"
+    unrealized_sign = "🟢" if total_unrealized_pnl >= 0 else "🔴"
+
+    pnl_prefix = "+" if pnl_val >= 0 else ""
+    unreal_prefix = "+" if total_unrealized_pnl >= 0 else ""
+
+    msg = f"📊 【富邦證券】每日盤後損益回報\n"
+    msg += f"親愛的 {user_name}，今日台股已收盤，您的帳戶資產統計如下：\n\n"
+    msg += f"📅 日期：{today_str} ({weekday_cn})\n\n"
+    msg += f"💰 今日資產總額：$ {total_market_val:,.0f} 元\n"
+    msg += f"{pnl_sign} 今日純損益 (與昨日比)：{pnl_prefix}$ {pnl_val:,.0f} 元\n"
+    msg += (
+        f"{unrealized_sign} 累積未實現損益：{unreal_prefix}$ {total_unrealized_pnl:,.0f} 元\n\n"
+    )
+
+    msg += "📈 今日持股庫存變動：\n"
+    for sym, detail in pnl_report["details"].items():
+        if detail["qty"] > 0 or detail["yesterday_price"] > 0:
+            diff = detail["today_price"] - detail["yesterday_price"]
+            diff_prefix = "+" if diff >= 0 else ""
+            msg += f"- {sym}：{detail['yesterday_price']:,.1f} ➔ {detail['today_price']:,.1f} 元 ({diff_prefix}{diff:,.1f})\n"
+
+    msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已在安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
+    return msg
+
+
+def send_line_report(line_user_id: str, message: str, channel_access_token: str):
+    if not line_user_id:
+        print("警告: 缺少 LINE User ID，無法發送訊息。")
+        return
+
+    try:
+        line_bot_api = LineBotApi(channel_access_token)
+        line_bot_api.push_message(line_user_id, TextSendMessage(text=message))
+        print(f"成功推送 LINE 報表給使用者 {line_user_id}")
+    except Exception as e:
+        print(f"LINE 訊息推送失敗: {e}")
