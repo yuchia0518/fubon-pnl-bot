@@ -44,7 +44,7 @@ def format_report_message(
         if detail["qty"] > 0 or detail["yesterday_price"] > 0:
             diff = detail["today_price"] - detail["yesterday_price"]
             diff_prefix = "+" if diff >= 0 else ""
-            msg += f"- {sym}：{detail['yesterday_price']:,.1f} ➔ {detail['today_price']:,.1f} 元 ({diff_prefix}{diff:,.1f})\n"
+            msg += f"- {sym}：{detail['yesterday_price']:,.2f} ➔ {detail['today_price']:,.2f} 元 ({diff_prefix}{diff:,.2f})\n"
 
     msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已在安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
     return msg
