@@ -1,0 +1,40 @@
+name: Update LINE User ID
+
+on:
+  workflow_dispatch:
+    inputs:
+      old_id:
+        description: '舊的 LINE User ID'
+        required: true
+      new_id:
+        description: '新的 LINE User ID'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install supabase
+
+      - name: Update User
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OLD_ID: ${{ github.event.inputs.old_id }}
+          NEW_ID: ${{ github.event.inputs.new_id }}
+        run: |
+          python -c "
+import os
+from supabase import create_client
+
+supabase = create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_KEY'])
+old = os.environ['OLD_ID']
+new = os.environ['NEW_ID']
+
+result = supabase.table('users').update({'line_user_id': new, 'md_id': 'admin'}).eq('line_user_id', old).execute()
+print(f'✅ 已更新: {result.data}')
+"
