@@ -1,5 +1,6 @@
 import os
 import base64
+import subprocess
 from datetime import date
 
 
@@ -42,6 +43,23 @@ class FubonClientWrapper:
 
         try:
             from fubon_neo.sdk import FubonSDK
+
+            # Verify .p12 with openssl before SDK login
+            try:
+                verify = subprocess.run(
+                    ["openssl", "pkcs12", "-in", ca_path, "-noout",
+                     "-passin", f"pass:{self.ca_password}"],
+                    capture_output=True, text=True, timeout=15
+                )
+                if verify.returncode == 0:
+                    print("✅ openssl 驗證 .p12 成功")
+                else:
+                    print(f"⚠️ openssl 驗證 .p12 失敗: {verify.stderr.strip()}")
+                    print(f"   可能 Base64 內容不正確或密碼錯誤")
+            except FileNotFoundError:
+                print("openssl 未安裝，跳過驗證")
+            except Exception as ve:
+                print(f"openssl 驗證異常: {ve}")
 
             self.sdk = FubonSDK()
             accounts = self.sdk.login(
