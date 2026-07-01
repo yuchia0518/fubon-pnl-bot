@@ -25,12 +25,20 @@ class FubonClientWrapper:
                 print(f"銷毀憑證暫存檔失敗: {e}")
 
     def login_and_fetch_portfolio(self) -> tuple:
-        ca_path = os.path.join(os.environ.get("TEMP", "/tmp"), "fubon_ca.pfx")
+        ca_dir = os.environ.get("TEMP") or os.environ.get("TMPDIR") or "/tmp"
+        ca_path = os.path.join(ca_dir, "fubon_ca.p12")
+        print(f"CA 憑證路徑: {ca_path}")
 
         try:
             self._write_ca_file(ca_path)
+            ca_size = os.path.getsize(ca_path)
+            print(f"CA 憑證已寫入，大小: {ca_size} bytes, 存在: {os.path.exists(ca_path)}")
+            if ca_size < 100:
+                print(f"⚠️ CA 憑證檔案過小，可能內容不完整")
+                print(f"Base64 原始內容長度: {len(self.ca_content_b64)}")
         except Exception as e:
             print(f"寫入 CA 憑證失敗: {e}")
+            return self._mock_data()
 
         try:
             from fubon_neo.sdk import FubonSDK
