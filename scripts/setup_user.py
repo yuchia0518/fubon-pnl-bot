@@ -21,8 +21,8 @@ def main():
         "ct_id": "setup_bot",
     }
 
-    result = supabase.table("users").insert(data).execute()
-    print("✅ 已成功寫入使用者:", result.data)
+    result = supabase.table("users").upsert(data, on_conflict="line_user_id").execute()
+    print("✅ 已成功寫入/更新使用者:", result.data)
 
 
 if __name__ == "__main__":

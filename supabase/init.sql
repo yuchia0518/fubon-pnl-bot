@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    line_user_id VARCHAR(255) NOT NULL,
+    line_user_id VARCHAR(255) NOT NULL UNIQUE,
     fubon_username TEXT NOT NULL,
     fubon_password TEXT NOT NULL,
     fubon_ca_content TEXT NOT NULL,
