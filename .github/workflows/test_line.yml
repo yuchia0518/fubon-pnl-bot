@@ -1,0 +1,45 @@
+name: Test LINE Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      line_user_id:
+        description: 'LINE User ID'
+        required: true
+      message:
+        description: '要發送的測試訊息'
+        required: true
+        default: '🧪 這是一則來自 GitHub Actions 的測試訊息！'
+
+jobs:
+  test-line:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install line-bot-sdk
+
+      - name: Send Test Message
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ github.event.inputs.line_user_id }}
+          MSG: ${{ github.event.inputs.message }}
+        run: |
+          python -c "
+import os
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+
+token = os.environ['LINE_CHANNEL_ACCESS_TOKEN']
+user_id = os.environ.get('LINE_USER_ID', '').strip()
+msg = os.environ.get('MSG', '🧪 測試訊息')
+
+print(f'發送至: {user_id}')
+print(f'訊息內容: {msg}')
+
+api = LineBotApi(token)
+api.push_message(user_id, TextSendMessage(text=msg))
+print('✅ 成功推送！')
+"
