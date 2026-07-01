@@ -96,9 +96,24 @@ class FubonClientWrapper:
                     pnl = item.unrealized_profit - item.unrealized_loss
                     unrealized_pnl_total += pnl
                     if stock_no in portfolio and item.today_qty > 0:
-                        # Derive current price from cost + PnL
-                        price = item.cost_price + (pnl / item.today_qty)
-                        portfolio[stock_no]["price"] = round(price, 2)
+                        print(f"  Debug PnL for {stock_no}: cost_price={item.cost_price}, "
+                              f"unrealized_profit={item.unrealized_profit}, "
+                              f"unrealized_loss={item.unrealized_loss}")
+                        # Try known price field names
+                        price = None
+                        for fld in ['current_price', 'market_price', 'closing_price', 'price']:
+                            val = getattr(item, fld, None)
+                            if val is not None:
+                                try:
+                                    price = round(float(val), 2)
+                                    print(f"  使用 {fld}={val}")
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+                        if price is None:
+                            price = round(item.cost_price + (pnl / item.today_qty), 2)
+                            print(f"  使用推算價格: {price}")
+                        portfolio[stock_no]["price"] = price
                         portfolio[stock_no]["cost_price"] = item.cost_price
 
             # 3. Try to get today's filled orders
