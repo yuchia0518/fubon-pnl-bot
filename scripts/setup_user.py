@@ -1,4 +1,8 @@
 import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from supabase import create_client
 from src.crypto_utils import encrypt
 
