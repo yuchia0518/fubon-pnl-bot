@@ -70,7 +70,8 @@ def main():
             send_line_report(u["line_user_id"], msg, line_token)
 
             db.insert_daily_balance(
-                u["id"], today_str, total_market_val, total_unrealized_pnl
+                u["id"], today_str, total_market_val, total_unrealized_pnl,
+                holdings_json=today_inv
             )
             print(f"     ✅ {u['name']} 處理完成")
 

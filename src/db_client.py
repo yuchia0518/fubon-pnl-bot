@@ -29,13 +29,15 @@ class DatabaseClient:
         return {}
 
     def insert_daily_balance(
-        self, user_id: str, date_str: str, market_val: float, unrealized_pnl: float
+        self, user_id: str, date_str: str, market_val: float, unrealized_pnl: float,
+        holdings_json: dict = None
     ):
         data = {
             "user_id": user_id,
             "date": date_str,
             "total_market_value": market_val,
             "unrealized_pnl": unrealized_pnl,
+            "holdings_json": holdings_json,
             "ct_id": "system_bot",
         }
         self.client.table("daily_balances").insert(data).execute()
