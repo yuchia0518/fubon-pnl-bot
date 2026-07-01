@@ -63,6 +63,29 @@ CREATE INDEX IF NOT EXISTS idx_balances_active ON daily_balances (dt_date)
 
 
 -- ============================================================
+-- Row Level Security (RLS) 策略
+-- 此 Bot 使用 service_role 金鑰進行後端存取，
+-- service_role 可自動繞過 RLS，因此以下策略設為開放。
+-- 若未來改為使用 anon 金鑰，請調整策略條件。
+-- ============================================================
+
+-- 啟用 RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_balances ENABLE ROW LEVEL SECURITY;
+
+-- 允許所有操作 (供 service_role 背景服務使用)
+CREATE POLICY "Allow all for users" ON users
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "Allow all for daily_balances" ON daily_balances
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+
+-- ============================================================
 -- 備註說明
 -- ============================================================
 -- holdings_json 格式範例 (JSONB):
