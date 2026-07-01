@@ -24,6 +24,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Download & Install Fubon Neo SDK
+      run: |
+        curl -L -o fubon_neo.zip "https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.2.8-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.zip"
+        unzip -o fubon_neo.zip
+        pip install fubon_neo-*.whl
+        rm -f fubon_neo.zip fubon_neo-*.whl
+
     - name: Run P&L Bot
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
