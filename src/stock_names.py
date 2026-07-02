@@ -8,13 +8,13 @@ TPEX_URL = "https://openapi.tpex.org.tw/v1/opendata/t187ap03_P"
 def _fetch_twse():
     resp = requests.get(TWSE_URL, timeout=15)
     resp.raise_for_status()
-    return {item["code"]: item["name"] for item in resp.json()}
+    return {item["公司代號"]: item["公司簡稱"] for item in resp.json()}
 
 def _fetch_tpex():
     try:
         resp = requests.get(TPEX_URL, timeout=15)
         resp.raise_for_status()
-        return {item["code"]: item["name"] for item in resp.json()}
+        return {item["公司代號"]: item["公司簡稱"] for item in resp.json()}
     except Exception:
         return {}
 
