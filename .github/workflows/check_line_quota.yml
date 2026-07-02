@@ -1,0 +1,26 @@
+name: Check LINE Message Quota
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-quota:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Query LINE API
+      env:
+        LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+      run: |
+        QUOTA=$(curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
+          https://api.line.me/v2/bot/message/quota | \
+          python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
+
+        USED=$(curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
+          https://api.line.me/v2/bot/message/quota/consumption | \
+          python3 -c "import sys,json; print(json.load(sys.stdin)['totalUsage'])")
+
+        REMAIN=$((QUOTA - USED))
+        echo "📊 LINE 本月訊息用量"
+        echo "  上限：$QUOTA 則"
+        echo "  已用：$USED 則"
+        echo "  剩餘：$REMAIN 則"
