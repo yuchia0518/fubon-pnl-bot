@@ -48,7 +48,7 @@ def format_report_message(
             today_mv = detail["qty"] * detail["today_price"]
             mv_diff = today_mv - yesterday_mv
             diff_prefix = "+" if mv_diff >= 0 else ""
-            msg += f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})\n"
+            msg += f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元\n"
 
     msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已在安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
     return msg
