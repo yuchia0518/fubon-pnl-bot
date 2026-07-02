@@ -67,9 +67,9 @@ def format_report_message(
     etfs.sort(key=lambda x: x[0], reverse=True)
 
     if stocks:
-        msg += "🔹 個股\n" + "\n".join(line for _, line in stocks) + "\n\n"
+        msg += "🔹 個股\n" + "\n\n".join(line for _, line in stocks) + "\n\n"
     if etfs:
-        msg += "🔸 ETF\n" + "\n".join(line for _, line in etfs) + "\n"
+        msg += "🔸 ETF\n" + "\n\n".join(line for _, line in etfs) + "\n"
 
     msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已於安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
     return msg
