@@ -107,7 +107,7 @@ class FubonClientWrapper:
                         "sell_filled_qty": inv.sell_filled_qty,
                         "stock_name": name,
                     }
-                    print(f"  {stock_no} → {name}")
+                    print(f"  {stock_no} → {name}, today_qty={inv.today_qty}, tradable_qty={inv.tradable_qty}, odd={getattr(inv, 'odd', 'N/A')}")
 
             # 2. Get unrealized P&L details
             pnl_result = self.sdk.accounting.unrealized_gains_and_loses(self.account)
