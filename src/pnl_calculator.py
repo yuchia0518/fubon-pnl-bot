@@ -27,7 +27,7 @@ def calculate_daily_pnl(yesterday_inv: dict, today_inv: dict, transactions: list
 
     for sym in all_symbols:
         y_qty = yesterday_inv.get(sym, {}).get("qty", 0)
-        y_close = yesterday_inv.get(sym, {}).get("close", 0.0)
+        y_close = yesterday_inv.get(sym, {}).get("price", 0.0)
 
         t_qty = today_inv.get(sym, {}).get("qty", 0)
         t_close = today_inv.get(sym, {}).get("price", 0.0)
