@@ -1,6 +1,17 @@
 import datetime
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+from src.stock_names import ETF_NAMES
+
+
+def _build_stock_line(sym, detail):
+    name = detail.get("stock_name", sym)
+    label = f"{name}({sym})" if name != sym else sym
+    yesterday_mv = detail["yesterday_qty"] * detail["yesterday_price"]
+    today_mv = detail["qty"] * detail["today_price"]
+    mv_diff = today_mv - yesterday_mv
+    diff_prefix = "+" if mv_diff >= 0 else ""
+    return (mv_diff, f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股")
 
 
 def format_report_message(
@@ -40,20 +51,27 @@ def format_report_message(
     )
 
     msg += "📈 今日持股庫存變動：\n"
-    items = []
-    for sym, detail in pnl_report["details"].items():
-        if detail["qty"] > 0 or detail["yesterday_qty"] > 0:
-            name = detail.get("stock_name", sym)
-            label = f"{name}({sym})" if name != sym else sym
-            yesterday_mv = detail["yesterday_qty"] * detail["yesterday_price"]
-            today_mv = detail["qty"] * detail["today_price"]
-            mv_diff = today_mv - yesterday_mv
-            diff_prefix = "+" if mv_diff >= 0 else ""
-            line = f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股"
-            items.append(line)
-    msg += "\n\n".join(items) + "\n"
 
-    msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已在安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
+    stocks = []
+    etfs = []
+    for sym, detail in pnl_report["details"].items():
+        if detail["qty"] <= 0 and detail["yesterday_qty"] <= 0:
+            continue
+        mv_diff, line = _build_stock_line(sym, detail)
+        if sym in ETF_NAMES:
+            etfs.append((mv_diff, line))
+        else:
+            stocks.append((mv_diff, line))
+
+    stocks.sort(key=lambda x: x[0], reverse=True)
+    etfs.sort(key=lambda x: x[0], reverse=True)
+
+    if stocks:
+        msg += "🔹 個股\n" + "\n".join(line for _, line in stocks) + "\n\n"
+    if etfs:
+        msg += "🔸 ETF\n" + "\n".join(line for _, line in etfs) + "\n"
+
+    msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已於安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
     return msg
 
 
