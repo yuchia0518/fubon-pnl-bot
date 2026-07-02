@@ -65,8 +65,8 @@ def main():
             )
             total_market_val = int(round(total_market_val * (1 - FEE_RATE)))
 
-            print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}")
-            print(f"     每日損益: {pnl_report}")
+            print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}", flush=True)
+            print(f"     每日損益: {pnl_report}", flush=True)
 
             msg_detail = format_report_message(
                 u["name"], pnl_report, total_market_val, total_unrealized_pnl
@@ -77,7 +77,8 @@ def main():
                 os.environ.get("GEMINI_API_KEY", "")
             )
 
-            print(f"     正在推送 LINE 給: {u['line_user_id']}")
+            print(f"     AI 摘要: {'有' if ai_summary_text else '無'}", flush=True)
+            print(f"     正在推送 LINE 給: {u['line_user_id']}", flush=True)
             if ai_summary_text:
                 msg_detail = f"🤖 【AI 盤後摘要】\n\n{ai_summary_text}\n\n━━━━━━━━━━━━\n\n{msg_detail}"
             send_line_report(u["line_user_id"], msg_detail, line_token)
@@ -92,6 +93,8 @@ def main():
             traceback.print_exc()
             print(f"處理親友 {u['name']} 時發生錯誤: {e}")
 
+    sys.stdout.flush()
+    sys.stderr.flush()
     os._exit(0)
 
 

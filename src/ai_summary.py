@@ -41,6 +41,7 @@ def generate_ai_summary(
     etf_changes.sort(reverse=True)
     top_changes = [line for _, line in (stock_changes[:3] + etf_changes[:3])]
 
+    print("  正在呼叫 Gemini API...", flush=True)
     prompt = f"""你是一個資產摘要助手。根據以下今日庫存數據，用口語的繁體中文產出 1~3 句摘要。只描述數字呈現的事實，不預測未來、不給投資建議。
 
 用戶：{user_name}
@@ -62,7 +63,9 @@ def generate_ai_summary(
             model="gemini-2.5-flash",
             contents=prompt,
         )
-        return response.text.strip()
+        text = response.text.strip()
+        print(f"  Gemini 回覆: {text[:80]}...", flush=True)
+        return text
     except Exception as e:
-        print(f"AI 摘要生成失敗: {e}")
+        print(f"AI 摘要生成失敗: {e}", flush=True)
         return None
