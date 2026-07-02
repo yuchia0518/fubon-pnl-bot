@@ -19,11 +19,16 @@ def _fetch_yahoo_name(stock_no):
     """Fallback: query Yahoo Finance for a single stock name."""
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{stock_no}.TW"
-        resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-        resp.raise_for_status()
+        print(f"  Yahoo 查詢 {stock_no} ...")
+        resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        if resp.status_code != 200:
+            print(f"  Yahoo 回傳 {resp.status_code}")
+            return None
         data = resp.json()
         meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
-        return meta.get("shortName") or meta.get("longName") or None
+        name = meta.get("shortName") or meta.get("longName")
+        print(f"  Yahoo 回傳 {stock_no} → {name}")
+        return name
     except Exception as e:
         print(f"  Yahoo Finance 查詢 {stock_no} 失敗: {e}")
         return None
