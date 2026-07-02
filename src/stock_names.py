@@ -2,49 +2,60 @@ import requests
 
 _STOCK_NAMES_CACHE = None
 
-TWSE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_P"
-TPEX_URL = "https://openapi.tpex.org.tw/v1/opendata/t187ap03_P"
+TWSE_STOCKS_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
 
-def _fetch_twse():
-    resp = requests.get(TWSE_URL, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
-    if not isinstance(data, list):
-        print(f"  TWSE API 回傳非陣列: {type(data)}")
-        print(f"  內容: {str(data)[:500]}")
-        return {}
-    if not data:
-        print("  TWSE API 回傳空陣列")
-        return {}
-    sample = data[0]
-    print(f"  TWSE API 第一筆 keys: {list(sample.keys())}")
-    return {item["公司代號"]: item["公司簡稱"] for item in data}
-
-def _fetch_tpex():
+def _fetch_json(url, label):
     try:
-        resp = requests.get(TPEX_URL, timeout=15)
+        resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        return {item["公司代號"]: item["公司簡稱"] for item in resp.json()}
+        data = resp.json()
+        if not isinstance(data, list) or not data:
+            return {}
+        return data
     except Exception:
         return {}
 
+def _fetch_yahoo_name(stock_no):
+    """Fallback: query Yahoo Finance for a single stock name."""
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{stock_no}.TW"
+        resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        data = resp.json()
+        meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
+        return meta.get("shortName") or meta.get("longName") or None
+    except Exception as e:
+        print(f"  Yahoo Finance 查詢 {stock_no} 失敗: {e}")
+        return None
+
 def fetch_all_names():
     names = {}
-    try:
-        names.update(_fetch_twse())
-        names.update(_fetch_tpex())
-    except Exception as e:
-        print(f"獲取股票名稱失敗: {e}")
+
+    stocks = _fetch_json(TWSE_STOCKS_URL, "上市股票")
+    for item in stocks:
+        code = item.get("公司代號")
+        name = item.get("公司簡稱")
+        if code and name:
+            names[code] = name
+
+    print(f"  股票名稱快取載入 {len(names)} 筆")
     return names
 
 def get_stock_name(stock_no):
     global _STOCK_NAMES_CACHE
     if _STOCK_NAMES_CACHE is None:
         _STOCK_NAMES_CACHE = fetch_all_names()
-        sample_keys = list(_STOCK_NAMES_CACHE.keys())[:3]
-        print(f"  股票名稱快取載入 {len(_STOCK_NAMES_CACHE)} 筆")
-        print(f"  範例: { {k: _STOCK_NAMES_CACHE[k] for k in sample_keys} }")
-    result = _STOCK_NAMES_CACHE.get(stock_no, stock_no)
-    if result == stock_no:
-        print(f"  查無 {stock_no}，快取中有 {stock_no in _STOCK_NAMES_CACHE}")
-    return result
+    name = _STOCK_NAMES_CACHE.get(stock_no)
+    if name:
+        return name
+    yahoo_name = _fetch_yahoo_name(stock_no)
+    if yahoo_name:
+        _STOCK_NAMES_CACHE[stock_no] = yahoo_name
+        return yahoo_name
+    return stock_no
+
+def get_stock_name(stock_no):
+    global _STOCK_NAMES_CACHE
+    if _STOCK_NAMES_CACHE is None:
+        _STOCK_NAMES_CACHE = fetch_all_names()
+    return _STOCK_NAMES_CACHE.get(stock_no, stock_no)
