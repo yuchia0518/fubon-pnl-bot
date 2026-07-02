@@ -2,6 +2,7 @@ import os
 import base64
 import subprocess
 from datetime import date
+from src.stock_names import get_stock_name
 
 
 class FubonClientWrapper:
@@ -79,13 +80,12 @@ class FubonClientWrapper:
             if inventory_result.is_success and inventory_result.data:
                 for inv in inventory_result.data:
                     stock_no = inv.stock_no
-                    inv_fields = [a for a in dir(inv) if not a.startswith('_')]
-                    print(f"  Debug inventory fields for {stock_no}: {inv_fields}")
                     portfolio[stock_no] = {
                         "qty": inv.today_qty,
                         "lastday_qty": inv.lastday_qty,
                         "buy_filled_qty": inv.buy_filled_qty,
                         "sell_filled_qty": inv.sell_filled_qty,
+                        "stock_name": get_stock_name(stock_no),
                     }
 
             # 2. Get unrealized P&L details for current prices
@@ -97,11 +97,6 @@ class FubonClientWrapper:
                     pnl = item.unrealized_profit - item.unrealized_loss
                     unrealized_pnl_total += pnl
                     if stock_no in portfolio and item.today_qty > 0:
-                        pnl_fields = [a for a in dir(item) if not a.startswith('_')]
-                        print(f"  Debug PnL fields for {stock_no}: {pnl_fields}")
-                        print(f"  Debug PnL for {stock_no}: cost_price={item.cost_price}, "
-                              f"unrealized_profit={item.unrealized_profit}, "
-                              f"unrealized_loss={item.unrealized_loss}")
                         # Try known price field names
                         price = None
                         for fld in ['current_price', 'market_price', 'closing_price', 'price']:
@@ -115,7 +110,6 @@ class FubonClientWrapper:
                                     continue
                         if price is None:
                             price = round(item.cost_price + (pnl / item.today_qty), 2)
-                            print(f"  使用推算價格: {price}")
                         portfolio[stock_no]["price"] = price
                         portfolio[stock_no]["cost_price"] = item.cost_price
 

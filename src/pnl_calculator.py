@@ -52,11 +52,14 @@ def calculate_daily_pnl(yesterday_inv: dict, today_inv: dict, transactions: list
             sym_pnl += (t_close - y_close) * hold_qty
 
         total_pnl += sym_pnl
+        stock_name = today_inv.get(sym, {}).get("stock_name", "") or yesterday_inv.get(sym, {}).get("stock_name", sym)
         details[sym] = {
             "pnl": int(round(sym_pnl)),
             "today_price": t_close,
             "yesterday_price": y_close,
             "qty": t_qty,
+            "yesterday_qty": y_qty,
+            "stock_name": stock_name,
         }
 
     return {"total_pnl": int(round(total_pnl)), "details": details}
