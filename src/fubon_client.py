@@ -79,7 +79,8 @@ class FubonClientWrapper:
             if inventory_result.is_success and inventory_result.data:
                 for inv in inventory_result.data:
                     stock_no = inv.stock_no
-                    # Use current price from unrealized P&L if available
+                    inv_fields = [a for a in dir(inv) if not a.startswith('_')]
+                    print(f"  Debug inventory fields for {stock_no}: {inv_fields}")
                     portfolio[stock_no] = {
                         "qty": inv.today_qty,
                         "lastday_qty": inv.lastday_qty,
@@ -96,6 +97,8 @@ class FubonClientWrapper:
                     pnl = item.unrealized_profit - item.unrealized_loss
                     unrealized_pnl_total += pnl
                     if stock_no in portfolio and item.today_qty > 0:
+                        pnl_fields = [a for a in dir(item) if not a.startswith('_')]
+                        print(f"  Debug PnL fields for {stock_no}: {pnl_fields}")
                         print(f"  Debug PnL for {stock_no}: cost_price={item.cost_price}, "
                               f"unrealized_profit={item.unrealized_profit}, "
                               f"unrealized_loss={item.unrealized_loss}")
