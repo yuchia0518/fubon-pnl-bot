@@ -4,17 +4,6 @@ _STOCK_NAMES_CACHE = None
 
 TWSE_STOCKS_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
 
-def _fetch_json(url, label):
-    try:
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        if not isinstance(data, list) or not data:
-            return {}
-        return data
-    except Exception:
-        return {}
-
 ETF_NAMES = {
     "0050": "元大台灣50",
     "0051": "元大中型100",
@@ -30,6 +19,28 @@ ETF_NAMES = {
     "00888": "永豐台灣ESG",
 }
 
+def _fetch_json(url, label):
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, list) or not data:
+            return {}
+        return data
+    except Exception:
+        return {}
+
+def fetch_all_names():
+    names = {}
+    stocks = _fetch_json(TWSE_STOCKS_URL, "上市股票")
+    for item in stocks:
+        code = item.get("公司代號")
+        name = item.get("公司簡稱")
+        if code and name:
+            names[code] = name
+    print(f"  股票名稱快取載入 {len(names)} 筆")
+    return names
+
 def get_stock_name(stock_no):
     global _STOCK_NAMES_CACHE
     if _STOCK_NAMES_CACHE is None:
@@ -41,35 +52,3 @@ def get_stock_name(stock_no):
     if etf_name:
         return etf_name
     return stock_no
-
-def fetch_all_names():
-    names = {}
-
-    stocks = _fetch_json(TWSE_STOCKS_URL, "上市股票")
-    for item in stocks:
-        code = item.get("公司代號")
-        name = item.get("公司簡稱")
-        if code and name:
-            names[code] = name
-
-    print(f"  股票名稱快取載入 {len(names)} 筆")
-    return names
-
-def get_stock_name(stock_no):
-    global _STOCK_NAMES_CACHE
-    if _STOCK_NAMES_CACHE is None:
-        _STOCK_NAMES_CACHE = fetch_all_names()
-    name = _STOCK_NAMES_CACHE.get(stock_no)
-    if name:
-        return name
-    yahoo_name = _fetch_yahoo_name(stock_no)
-    if yahoo_name:
-        _STOCK_NAMES_CACHE[stock_no] = yahoo_name
-        return yahoo_name
-    return stock_no
-
-def get_stock_name(stock_no):
-    global _STOCK_NAMES_CACHE
-    if _STOCK_NAMES_CACHE is None:
-        _STOCK_NAMES_CACHE = fetch_all_names()
-    return _STOCK_NAMES_CACHE.get(stock_no, stock_no)
