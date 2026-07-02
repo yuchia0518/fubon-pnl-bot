@@ -1,5 +1,4 @@
 import os
-import sys
 import traceback
 import datetime
 from dotenv import load_dotenv
@@ -98,6 +97,8 @@ def main():
         except Exception as e:
             traceback.print_exc()
             print(f"處理親友 {u['name']} 時發生錯誤: {e}")
+
+    os._exit(0)
 
 
 if __name__ == "__main__":
