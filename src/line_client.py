@@ -40,6 +40,7 @@ def format_report_message(
     )
 
     msg += "📈 今日持股庫存變動：\n"
+    items = []
     for sym, detail in pnl_report["details"].items():
         if detail["qty"] > 0 or detail["yesterday_qty"] > 0:
             name = detail.get("stock_name", sym)
@@ -48,7 +49,9 @@ def format_report_message(
             today_mv = detail["qty"] * detail["today_price"]
             mv_diff = today_mv - yesterday_mv
             diff_prefix = "+" if mv_diff >= 0 else ""
-            msg += f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元\n"
+            line = f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股"
+            items.append(line)
+    msg += "\n\n".join(items) + "\n"
 
     msg += "\n※ 本報告由系統自動計算。所有敏感憑證與帳密均已在安全記憶體中解密並隨虛擬機銷毀，無任何外洩風險。"
     return msg
