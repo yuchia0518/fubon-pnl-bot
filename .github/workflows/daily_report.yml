@@ -51,5 +51,6 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         MASTER_KEY: ${{ secrets.MASTER_KEY }}
         LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         python -m src.main

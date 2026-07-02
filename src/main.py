@@ -7,7 +7,8 @@ from src.crypto_utils import decrypt
 from src.db_client import DatabaseClient
 from src.fubon_client import FubonClientWrapper
 from src.pnl_calculator import calculate_daily_pnl
-from src.line_client import FEE_RATE, format_report_message, send_line_report
+from src.line_client import FEE_RATE, format_report_message, send_line_report, send_multiple_messages
+from src.ai_summary import generate_ai_summary
 
 
 def main():
@@ -68,11 +69,25 @@ def main():
             print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}")
             print(f"     每日損益: {pnl_report}")
 
-            msg = format_report_message(
+            msg_detail = format_report_message(
                 u["name"], pnl_report, total_market_val, total_unrealized_pnl
             )
+
+            ai_summary_text = generate_ai_summary(
+                u["name"], pnl_report, total_market_val, total_unrealized_pnl,
+                os.environ.get("GEMINI_API_KEY", "")
+            )
+
             print(f"     正在推送 LINE 給: {u['line_user_id']}")
-            send_line_report(u["line_user_id"], msg, line_token)
+            if ai_summary_text:
+                summary_msg = f"🤖 【AI 盤後摘要】\n\n{ai_summary_text}"
+                send_multiple_messages(
+                    u["line_user_id"],
+                    [summary_msg, msg_detail],
+                    line_token
+                )
+            else:
+                send_line_report(u["line_user_id"], msg_detail, line_token)
 
             db.insert_daily_balance(
                 u["id"], today_str, total_market_val, total_unrealized_pnl,

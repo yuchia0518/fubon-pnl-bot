@@ -93,3 +93,17 @@ def send_line_report(line_user_id: str, message: str, channel_access_token: str)
         print(f"成功推送 LINE 報表給使用者 {line_user_id}")
     except Exception as e:
         print(f"LINE 訊息推送失敗: {e}")
+
+
+def send_multiple_messages(line_user_id: str, texts: list[str], channel_access_token: str):
+    if not line_user_id:
+        print("警告: 缺少 LINE User ID，無法發送訊息。")
+        return
+
+    try:
+        line_bot_api = LineBotApi(channel_access_token)
+        messages = [TextSendMessage(text=t) for t in texts]
+        line_bot_api.push_message(line_user_id, messages)
+        print(f"成功推送 {len(texts)} 則訊息給 {line_user_id}")
+    except Exception as e:
+        print(f"LINE 多則訊息推送失敗: {e}")
