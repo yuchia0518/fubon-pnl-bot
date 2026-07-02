@@ -7,7 +7,7 @@ from src.crypto_utils import decrypt
 from src.db_client import DatabaseClient
 from src.fubon_client import FubonClientWrapper
 from src.pnl_calculator import calculate_daily_pnl
-from src.line_client import format_report_message, send_line_report
+from src.line_client import FEE_RATE, format_report_message, send_line_report
 
 
 def main():
@@ -63,7 +63,7 @@ def main():
             total_market_val = sum(
                 item["qty"] * item["price"] for item in today_inv.values()
             )
-            total_market_val = int(round(total_market_val * (1 - 0.004418)))
+            total_market_val = int(round(total_market_val * (1 - FEE_RATE)))
 
             print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}")
             print(f"     每日損益: {pnl_report}")

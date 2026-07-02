@@ -3,12 +3,18 @@ from linebot import LineBotApi
 from linebot.models import TextSendMessage
 from src.stock_names import ETF_NAMES
 
+FEE_RATE = 0.004418
+
+
+def _apply_fee(value):
+    return int(value * (1 - FEE_RATE))
+
 
 def _build_stock_line(sym, detail):
     name = detail.get("stock_name", sym)
     label = f"{name}({sym})" if name != sym else sym
-    yesterday_mv = detail["yesterday_qty"] * detail["yesterday_price"]
-    today_mv = detail["qty"] * detail["today_price"]
+    yesterday_mv = _apply_fee(detail["yesterday_qty"] * detail["yesterday_price"])
+    today_mv = _apply_fee(detail["qty"] * detail["today_price"])
     mv_diff = today_mv - yesterday_mv
     diff_prefix = "+" if mv_diff >= 0 else ""
     arrow = "🔺" if mv_diff > 0 else ("🔻" if mv_diff < 0 else "")
