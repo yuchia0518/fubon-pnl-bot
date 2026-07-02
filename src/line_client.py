@@ -11,7 +11,8 @@ def _build_stock_line(sym, detail):
     today_mv = detail["qty"] * detail["today_price"]
     mv_diff = today_mv - yesterday_mv
     diff_prefix = "+" if mv_diff >= 0 else ""
-    return (mv_diff, f"- {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股")
+    arrow = "🔺" if mv_diff > 0 else ("🔻" if mv_diff < 0 else "")
+    return (mv_diff, f"{arrow} {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股")
 
 
 def format_report_message(
