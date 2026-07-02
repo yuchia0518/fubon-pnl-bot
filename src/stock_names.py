@@ -41,4 +41,10 @@ def get_stock_name(stock_no):
     global _STOCK_NAMES_CACHE
     if _STOCK_NAMES_CACHE is None:
         _STOCK_NAMES_CACHE = fetch_all_names()
-    return _STOCK_NAMES_CACHE.get(stock_no, stock_no)
+        sample_keys = list(_STOCK_NAMES_CACHE.keys())[:3]
+        print(f"  股票名稱快取載入 {len(_STOCK_NAMES_CACHE)} 筆")
+        print(f"  範例: { {k: _STOCK_NAMES_CACHE[k] for k in sample_keys} }")
+    result = _STOCK_NAMES_CACHE.get(stock_no, stock_no)
+    if result == stock_no:
+        print(f"  查無 {stock_no}，快取中有 {stock_no in _STOCK_NAMES_CACHE}")
+    return result
