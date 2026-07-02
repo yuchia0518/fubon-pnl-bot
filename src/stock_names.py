@@ -15,23 +15,32 @@ def _fetch_json(url, label):
     except Exception:
         return {}
 
-def _fetch_yahoo_name(stock_no):
-    """Fallback: query Yahoo Finance for a single stock name."""
-    try:
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{stock_no}.TW"
-        print(f"  Yahoo 查詢 {stock_no} ...")
-        resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-        if resp.status_code != 200:
-            print(f"  Yahoo 回傳 {resp.status_code}")
-            return None
-        data = resp.json()
-        meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
-        name = meta.get("shortName") or meta.get("longName")
-        print(f"  Yahoo 回傳 {stock_no} → {name}")
+ETF_NAMES = {
+    "0050": "元大台灣50",
+    "0051": "元大中型100",
+    "0052": "富邦科技",
+    "0053": "元大電子",
+    "0055": "元大MSCI金融",
+    "0056": "元大高股息",
+    "00646": "元大S&P500",
+    "00940": "元大台灣價值高息",
+    "009800": "中信特選金融",
+    "009816": "元大全球AI",
+    "00773B": "中信優先金融債",
+    "00888": "永豐台灣ESG",
+}
+
+def get_stock_name(stock_no):
+    global _STOCK_NAMES_CACHE
+    if _STOCK_NAMES_CACHE is None:
+        _STOCK_NAMES_CACHE = fetch_all_names()
+    name = _STOCK_NAMES_CACHE.get(stock_no)
+    if name:
         return name
-    except Exception as e:
-        print(f"  Yahoo Finance 查詢 {stock_no} 失敗: {e}")
-        return None
+    etf_name = ETF_NAMES.get(stock_no)
+    if etf_name:
+        return etf_name
+    return stock_no
 
 def fetch_all_names():
     names = {}
