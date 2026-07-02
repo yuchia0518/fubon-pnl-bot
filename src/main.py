@@ -63,6 +63,7 @@ def main():
             total_market_val = sum(
                 item["qty"] * item["price"] for item in today_inv.values()
             )
+            total_market_val = int(round(total_market_val * (1 - 0.004418)))
 
             print(f"     今日市值: {total_market_val}, 未實現損益: {total_unrealized_pnl}")
             print(f"     每日損益: {pnl_report}")
