@@ -123,13 +123,13 @@ class FubonClientWrapper:
             symbols = [s for s in portfolio.keys() if portfolio[s].get("qty", 0) > 0]
             yahoo_prices = self._fetch_prices_from_yahoo(symbols)
             for sym in portfolio:
-                if portfolio[sym].get("qty", 0) > 0:
+                qty = portfolio[sym].get("qty", 0)
+                if qty > 0:
                     price = yahoo_prices.get(sym)
                     if price:
                         portfolio[sym]["price"] = price
                         print(f"  {sym} Yahoo 收盤價: {price}")
                     else:
-                        # fallback: derive from cost + unrealized
                         cost = portfolio[sym].get("cost_price", 0)
                         pnl_item = next((x for x in (pnl_result.data or []) if x.stock_no == sym), None)
                         if pnl_item and pnl_item.today_qty > 0:
@@ -139,6 +139,8 @@ class FubonClientWrapper:
                             price = 0.0
                         portfolio[sym]["price"] = price
                         print(f"  {sym} 推算收盤價: {price}")
+                else:
+                    portfolio[sym]["price"] = 0.0
 
             # 4. Try to get today's filled orders
             transactions = []
