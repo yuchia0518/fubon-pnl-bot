@@ -40,7 +40,7 @@ class FubonClientWrapper:
                 print(f"Base64 原始內容長度: {len(self.ca_content_b64)}")
         except Exception as e:
             print(f"寫入 CA 憑證失敗: {e}")
-            return self._mock_data()
+            return False, *self._mock_data()
 
         try:
             from fubon_neo.sdk import FubonSDK
@@ -69,7 +69,7 @@ class FubonClientWrapper:
 
             if not accounts.is_success or not accounts.data:
                 print(f"富邦登入失敗: {accounts.message}")
-                return self._mock_data()
+                return False, *self._mock_data()
 
             self.account = accounts.data[0]
             print(f"✅ 登入成功: {self.account.name} ({self.account.account})")
@@ -80,13 +80,15 @@ class FubonClientWrapper:
             if inventory_result.is_success and inventory_result.data:
                 for inv in inventory_result.data:
                     stock_no = inv.stock_no
+                    name = get_stock_name(stock_no)
                     portfolio[stock_no] = {
                         "qty": inv.today_qty,
                         "lastday_qty": inv.lastday_qty,
                         "buy_filled_qty": inv.buy_filled_qty,
                         "sell_filled_qty": inv.sell_filled_qty,
-                        "stock_name": get_stock_name(stock_no),
+                        "stock_name": name,
                     }
+                    print(f"  {stock_no} → {name}")
 
             # 2. Get unrealized P&L details for current prices
             pnl_result = self.sdk.accounting.unrealized_gains_and_loses(self.account)
@@ -134,11 +136,11 @@ class FubonClientWrapper:
             except AttributeError:
                 print("deal_list not available, skipping today's transactions")
 
-            return portfolio, unrealized_pnl_total, transactions
+            return True, portfolio, unrealized_pnl_total, transactions
 
         except ImportError:
             print("採用 Fubon API Mock/測試數據回退模式...")
-            return self._mock_data()
+            return False, *self._mock_data()
         finally:
             self._cleanup_ca(ca_path)
 

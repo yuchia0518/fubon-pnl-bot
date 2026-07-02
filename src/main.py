@@ -39,12 +39,16 @@ def main():
             fubon_api = FubonClientWrapper(
                 fubon_user, fubon_pass, fubon_ca, fubon_ca_pass
             )
-            today_inv, total_unrealized_pnl, today_txs = (
+            login_ok, today_inv, total_unrealized_pnl, today_txs = (
                 fubon_api.login_and_fetch_portfolio()
             )
 
             today_inv = today_inv or {}
             today_txs = today_txs or []
+
+            if not login_ok:
+                print(f"    ⏭️ 富邦登入失敗，跳過此用戶，不發送 LINE 也不寫入資料庫")
+                continue
 
             y_bal = db.get_yesterday_balance(u["id"])
             yesterday_inv = {}
