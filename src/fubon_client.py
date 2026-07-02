@@ -1,6 +1,7 @@
 import os
 import base64
 import subprocess
+import requests
 from datetime import date
 from src.stock_names import get_stock_name
 
@@ -25,6 +26,24 @@ class FubonClientWrapper:
                 os.remove(ca_path)
             except Exception as e:
                 print(f"銷毀憑證暫存檔失敗: {e}")
+
+    def _fetch_prices_from_yahoo(self, symbols):
+        prices = {}
+        for sym in symbols:
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}.TW"
+                resp = requests.get(url, timeout=10,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+                if resp.status_code != 200:
+                    continue
+                data = resp.json()
+                meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
+                price = meta.get("regularMarketPrice")
+                if price:
+                    prices[sym] = round(float(price), 2)
+            except Exception:
+                continue
+        return prices
 
     def login_and_fetch_portfolio(self) -> tuple:
         ca_dir = os.environ.get("TEMP") or os.environ.get("TMPDIR") or "/tmp"
@@ -90,32 +109,38 @@ class FubonClientWrapper:
                     }
                     print(f"  {stock_no} → {name}")
 
-            # 2. Get unrealized P&L details for current prices
+            # 2. Get unrealized P&L details
             pnl_result = self.sdk.accounting.unrealized_gains_and_loses(self.account)
             unrealized_pnl_total = 0.0
             if pnl_result.is_success and pnl_result.data:
                 for item in pnl_result.data:
-                    stock_no = item.stock_no
-                    pnl = item.unrealized_profit - item.unrealized_loss
-                    unrealized_pnl_total += pnl
-                    if stock_no in portfolio and item.today_qty > 0:
-                        # Try known price field names
-                        price = None
-                        for fld in ['current_price', 'market_price', 'closing_price', 'price']:
-                            val = getattr(item, fld, None)
-                            if val is not None:
-                                try:
-                                    price = round(float(val), 2)
-                                    print(f"  使用 {fld}={val}")
-                                    break
-                                except (ValueError, TypeError):
-                                    continue
-                        if price is None:
-                            price = round(item.cost_price + (pnl / item.today_qty), 2)
-                        portfolio[stock_no]["price"] = price
-                        portfolio[stock_no]["cost_price"] = item.cost_price
+                    if item.stock_no in portfolio:
+                        pnl = item.unrealized_profit - item.unrealized_loss
+                        unrealized_pnl_total += pnl
+                        portfolio[item.stock_no]["cost_price"] = item.cost_price
 
-            # 3. Try to get today's filled orders
+            # 3. Fetch accurate closing prices from Yahoo Finance
+            symbols = [s for s in portfolio.keys() if portfolio[s].get("qty", 0) > 0]
+            yahoo_prices = self._fetch_prices_from_yahoo(symbols)
+            for sym in portfolio:
+                if portfolio[sym].get("qty", 0) > 0:
+                    price = yahoo_prices.get(sym)
+                    if price:
+                        portfolio[sym]["price"] = price
+                        print(f"  {sym} Yahoo 收盤價: {price}")
+                    else:
+                        # fallback: derive from cost + unrealized
+                        cost = portfolio[sym].get("cost_price", 0)
+                        pnl_item = next((x for x in (pnl_result.data or []) if x.stock_no == sym), None)
+                        if pnl_item and pnl_item.today_qty > 0:
+                            pnl = pnl_item.unrealized_profit - pnl_item.unrealized_loss
+                            price = round(cost + (pnl / pnl_item.today_qty), 2)
+                        else:
+                            price = 0.0
+                        portfolio[sym]["price"] = price
+                        print(f"  {sym} 推算收盤價: {price}")
+
+            # 4. Try to get today's filled orders
             transactions = []
             try:
                 today = date.today().strftime("%Y%m%d")
