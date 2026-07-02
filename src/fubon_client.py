@@ -30,19 +30,22 @@ class FubonClientWrapper:
     def _fetch_prices_from_yahoo(self, symbols):
         prices = {}
         for sym in symbols:
-            try:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}.TW"
-                resp = requests.get(url, timeout=10,
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-                if resp.status_code != 200:
+            for suffix in ('.TW', '.TWO'):
+                try:
+                    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}{suffix}"
+                    resp = requests.get(url, timeout=10,
+                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+                    if resp.status_code != 200:
+                        continue
+                    data = resp.json()
+                    meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
+                    price = meta.get("regularMarketPrice")
+                    if price:
+                        prices[sym] = round(float(price), 2)
+                        print(f"  {sym} Yahoo 收盤價: {price} (suffix={suffix})")
+                    break
+                except Exception:
                     continue
-                data = resp.json()
-                meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
-                price = meta.get("regularMarketPrice")
-                if price:
-                    prices[sym] = round(float(price), 2)
-            except Exception:
-                continue
         return prices
 
     def login_and_fetch_portfolio(self) -> tuple:
