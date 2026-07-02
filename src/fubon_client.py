@@ -100,18 +100,16 @@ class FubonClientWrapper:
                 for inv in inventory_result.data:
                     stock_no = inv.stock_no
                     name = get_stock_name(stock_no)
+                    odd_qty = getattr(inv.odd, 'today_qty', 0)
+                    total_qty = inv.today_qty + odd_qty
                     portfolio[stock_no] = {
-                        "qty": inv.today_qty,
+                        "qty": total_qty,
                         "lastday_qty": inv.lastday_qty,
                         "buy_filled_qty": inv.buy_filled_qty,
                         "sell_filled_qty": inv.sell_filled_qty,
                         "stock_name": name,
                     }
-                    print(f"  {stock_no} → {name}, today_qty={inv.today_qty}, tradable_qty={inv.tradable_qty}")
-                    odd_fields = [a for a in dir(inv.odd) if not a.startswith('_')]
-                    print(f"  {stock_no} odd fields: {odd_fields}")
-                    for f in odd_fields:
-                        print(f"    odd.{f} = {getattr(inv.odd, f)}")
+                    print(f"  {stock_no} → {name}, 整股={inv.today_qty}, 零股={odd_qty}, 總計={total_qty}")
 
             # 2. Get unrealized P&L details
             pnl_result = self.sdk.accounting.unrealized_gains_and_loses(self.account)
