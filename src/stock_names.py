@@ -8,7 +8,17 @@ TPEX_URL = "https://openapi.tpex.org.tw/v1/opendata/t187ap03_P"
 def _fetch_twse():
     resp = requests.get(TWSE_URL, timeout=15)
     resp.raise_for_status()
-    return {item["公司代號"]: item["公司簡稱"] for item in resp.json()}
+    data = resp.json()
+    if not isinstance(data, list):
+        print(f"  TWSE API 回傳非陣列: {type(data)}")
+        print(f"  內容: {str(data)[:500]}")
+        return {}
+    if not data:
+        print("  TWSE API 回傳空陣列")
+        return {}
+    sample = data[0]
+    print(f"  TWSE API 第一筆 keys: {list(sample.keys())}")
+    return {item["公司代號"]: item["公司簡稱"] for item in data}
 
 def _fetch_tpex():
     try:
