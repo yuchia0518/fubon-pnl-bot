@@ -78,10 +78,9 @@
     <p class="success" style="font-size:18px;margin-bottom:12px">✅ 登記完成！</p>
     <p style="color:#555;font-size:14px;margin-bottom:8px">請掃碼加入 LINE 官方帳號好友</p>
     <div class="qr-section">
-      <div class="qr-placeholder" id="qrPlaceholder">QR Code 載入中...</div>
-      <img id="qrImage" class="hidden" style="width:160px;height:160px;margin:0 auto;display:block;border-radius:8px" alt="LINE QR Code">
+      <img id="qrImage" width="160" height="160" style="margin:0 auto;display:block;border-radius:8px" alt="LINE QR Code">
     </div>
-    <p style="font-size:12px;color:#999;margin-top:8px">加入後即可每天收到損益推播</p>
+    <p style="font-size:12px;color:#999;margin-top:8px">掃碼加入好友後即可每天收到損益推播</p>
   </div>
 
   <div class="footer">由 GitHub Actions 自動排程 · 資料加密傳輸</div>
@@ -227,6 +226,7 @@ async function submitRegistration() {
     if (!res.ok) { const err = await res.text(); showError('登記失敗: ' + err); btn.disabled = false; btn.textContent = '送出登記'; return; }
     document.getElementById('formSection').classList.add('hidden');
     document.getElementById('doneSection').classList.remove('hidden');
+    document.getElementById('qrImage').src = 'https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=https://line.me/R/ti/p/%40YOUR_BOT_ID';
   } catch (e) {
     showError('網路錯誤，請重試');
     btn.disabled = false;
