@@ -30,16 +30,26 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const mk = Deno.env.get("MASTER_KEY");
   if (!mk) {
     console.error("MASTER_KEY not set");
     return new Response(JSON.stringify({ error: "Configuration error" }), {
-      status: 500, headers: { "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -49,7 +59,7 @@ serve(async (req) => {
 
     if (!name || !line_user_id || !fubon_username || !fubon_password || !fubon_ca_content || !fubon_ca_password) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400, headers: { "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -58,7 +68,7 @@ serve(async (req) => {
     if (!supaUrl || !supaKey) {
       console.error("Supabase credentials not configured");
       return new Response(JSON.stringify({ error: "Configuration error" }), {
-        status: 500, headers: { "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -84,12 +94,12 @@ serve(async (req) => {
     if (error) throw error;
 
     return new Response(JSON.stringify({ success: true, user: data }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("Unhandled error:", e);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500, headers: { "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
