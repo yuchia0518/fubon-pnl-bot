@@ -60,9 +60,14 @@
       <input type="password" id="password" placeholder="富邦證券密碼">
     </div>
     <div class="form-group">
+      <label>CA 憑證檔案 (.p12)</label>
+      <input type="file" id="certFile" accept=".p12" style="font-size:13px;padding:8px 0">
+      <div class="hint">至富邦證券網站下載 CA 憑證</div>
+    </div>
+    <div class="form-group">
       <label>憑證密碼</label>
-      <input type="password" id="certPassword" placeholder="CA 憑證密碼（選填）">
-      <div class="hint">如不填則沿用第一次設定時的憑證</div>
+      <input type="password" id="certPassword" placeholder="下載憑證時設定的密碼">
+      <div class="hint">即 .p12 檔案的密碼</div>
     </div>
     <button class="btn-submit" id="submitBtn" onclick="submitRegistration()">送出登記</button>
     <p class="error hidden" id="errorMsg"></p>
@@ -177,24 +182,47 @@ function showError(msg) {
   el.classList.remove('hidden');
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function submitRegistration() {
   const userId = document.getElementById('userId').value.trim();
   const password = document.getElementById('password').value;
+  const certFile = document.getElementById('certFile').files[0];
   const certPassword = document.getElementById('certPassword').value;
   const lineUserId = sessionStorage.getItem('line_user_id');
   const displayName = sessionStorage.getItem('line_display_name');
   document.getElementById('errorMsg').classList.add('hidden');
   document.getElementById('successMsg').classList.add('hidden');
   if (!userId || !password) { showError('請填寫身分證字號和登入密碼'); return; }
+  if (!certFile) { showError('請上傳 CA 憑證檔案 (.p12)'); return; }
+  if (!certPassword) { showError('請填寫憑證密碼'); return; }
   if (!lineUserId) { showError('請先使用 LINE 登入'); return; }
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = '送出中...';
   try {
+    const caContent = await fileToBase64(certFile);
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ line_user_id: lineUserId, display_name: displayName || userId, user_id: userId.toUpperCase(), password, cert_password: certPassword || undefined })
+      body: JSON.stringify({
+        line_user_id: lineUserId,
+        display_name: displayName || userId,
+        user_id: userId.toUpperCase(),
+        password,
+        cert_password: certPassword,
+        ca_content: caContent
+      })
     });
     if (!res.ok) { const err = await res.text(); showError('登記失敗: ' + err); btn.disabled = false; btn.textContent = '送出登記'; return; }
     document.getElementById('formSection').classList.add('hidden');

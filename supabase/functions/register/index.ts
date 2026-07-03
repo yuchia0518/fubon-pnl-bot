@@ -33,9 +33,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { line_user_id, display_name, user_id, password, cert_password } = body;
+    const { line_user_id, display_name, user_id, password, ca_content, cert_password } = body;
 
-    if (!line_user_id || !user_id || !password) {
+    if (!line_user_id || !user_id || !password || !ca_content || !cert_password) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,8 +55,8 @@ serve(async (req) => {
     const encrypted = {
       fubon_username: await encrypt(user_id.toUpperCase(), mk),
       fubon_password: await encrypt(password, mk),
-      fubon_ca_content: "",
-      fubon_ca_password: cert_password ? await encrypt(cert_password, mk) : "",
+      fubon_ca_content: await encrypt(ca_content, mk),
+      fubon_ca_password: await encrypt(cert_password, mk),
     };
 
     const upsertData = {
