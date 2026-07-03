@@ -149,7 +149,7 @@ async function handleCallback() {
     } catch (e) {
       document.getElementById('state-login').classList.add('hidden');
       document.getElementById('state-form').classList.remove('hidden');
-      document.getElementById('formMsg').innerHTML = '<div class="msg error">LINE 登入失敗: ' + e.message + '</div>';
+      document.getElementById('formMsg').innerHTML = '<div class="msg error">LINE 登入失敗: ' + escapeHtml(e.message) + '</div>';
     }
   }
   sessionStorage.removeItem('code_verifier');
@@ -186,7 +186,7 @@ function showFormIfLoggedIn() {
     const pic = sessionStorage.getItem('line_picture');
     const name = sessionStorage.getItem('line_display_name') || userId;
     const infoHtml = pic
-      ? '<img src="' + pic + '" alt=""><div><div class="name">' + escapeHtml(name) + '</div><div class="sub">已透過 LINE 認證</div></div>'
+      ? '<img src="' + escapeHtml(pic) + '" alt=""><div><div class="name">' + escapeHtml(name) + '</div><div class="sub">已透過 LINE 認證</div></div>'
       : '<div><div class="name">' + escapeHtml(name) + '</div><div class="sub">已透過 LINE 認證</div></div>';
     document.getElementById('userInfo').innerHTML = infoHtml;
   }
