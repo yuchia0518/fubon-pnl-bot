@@ -2,7 +2,7 @@ name: Fubon P&L Daily Report Bot
 
 on:
   schedule:
-    - cron: '35 6 * * 1-5'
+    - cron: '35 5 * * 1-5'
   workflow_dispatch:
 
 jobs:
