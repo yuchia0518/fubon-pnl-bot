@@ -226,7 +226,7 @@ async function submitRegistration() {
     if (!res.ok) { const err = await res.text(); showError('登記失敗: ' + err); btn.disabled = false; btn.textContent = '送出登記'; return; }
     document.getElementById('formSection').classList.add('hidden');
     document.getElementById('doneSection').classList.remove('hidden');
-    document.getElementById('qrImage').src = 'https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=https://line.me/R/ti/p/%40YOUR_BOT_ID';
+    document.getElementById('qrImage').src = 'https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=https://line.me/R/ti/p/%40659fctvt';
   } catch (e) {
     showError('網路錯誤，請重試');
     btn.disabled = false;
