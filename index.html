@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登錄 · 富邦每日損益 Bot</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+  .container { background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); padding: 40px; max-width: 420px; width: 100%; text-align: center; }
+  .logo { width: 64px; height: 64px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; color: white; font-weight: bold; }
+  h1 { font-size: 20px; color: #1a1a2e; margin-bottom: 8px; }
+  p.subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+  .btn-line { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 24px; background: #06C755; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.2s; text-decoration: none; }
+  .btn-line:hover { background: #05a84a; }
+  .btn-line svg { width: 20px; height: 20px; fill: currentColor; }
+  .form-group { margin-bottom: 16px; text-align: left; }
+  .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+  .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; }
+  .form-group input:focus { border-color: #667eea; }
+  .form-group .hint { font-size: 12px; color: #999; margin-top: 4px; }
+  .btn-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .success { color: #22c55e; }
+  .error { color: #ef4444; font-size: 14px; margin-top: 8px; }
+  .qr-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid #eee; }
+  .qr-section p { font-size: 13px; color: #888; margin-bottom: 12px; }
+  .qr-placeholder { width: 160px; height: 160px; margin: 0 auto; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #bbb; }
+  .hidden { display: none !important; }
+  #loginSection { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+  .badge { display: inline-block; background: #f0fdf4; color: #166534; font-size: 12px; padding: 4px 10px; border-radius: 20px; margin-bottom: 16px; }
+  .footer { margin-top: 20px; font-size: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="logo">📊</div>
+  <h1>富邦每日損益 Bot</h1>
+  <p class="subtitle">登錄後即可每天收到庫存損益推播</p>
+
+  <div id="loginSection">
+    <div class="badge">🔒 LINE 帳號登入</div>
+    <button class="btn-line" id="loginBtn" onclick="loginWithLine()">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5.5 11.5h-11v-1h11v1zm0-3h-11v-1h11v1z"/></svg>
+      使用 LINE 登入
+    </button>
+  </div>
+
+  <div id="formSection" class="hidden">
+    <div class="badge" id="userBadge">✅ 已登入</div>
+    <p style="font-size:14px;color:#555;margin-bottom:20px">填寫富邦證券憑證資訊</p>
+
+    <div class="form-group">
+      <label>身分證字號</label>
+      <input type="text" id="userId" placeholder="A123456789" maxlength="10" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>登入密碼</label>
+      <input type="password" id="password" placeholder="富邦證券密碼">
+    </div>
+    <div class="form-group">
+      <label>憑證密碼</label>
+      <input type="password" id="certPassword" placeholder="CA 憑證密碼（選填）">
+      <div class="hint">如不填則沿用第一次設定時的憑證</div>
+    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitRegistration()">送出登記</button>
+    <p class="error hidden" id="errorMsg"></p>
+    <p class="success hidden" id="successMsg">✅ 登記成功！你將在交易日收到損益推播。</p>
+  </div>
+
+  <div id="doneSection" class="hidden">
+    <p class="success" style="font-size:18px;margin-bottom:12px">✅ 登記完成！</p>
+    <p style="color:#555;font-size:14px;margin-bottom:8px">請掃碼加入 LINE 官方帳號好友</p>
+    <div class="qr-section">
+      <div class="qr-placeholder" id="qrPlaceholder">QR Code 載入中...</div>
+      <img id="qrImage" class="hidden" style="width:160px;height:160px;margin:0 auto;display:block;border-radius:8px" alt="LINE QR Code">
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:8px">加入後即可每天收到損益推播</p>
+  </div>
+
+  <div class="footer">由 GitHub Actions 自動排程 · 資料加密傳輸</div>
+</div>
+
+<script>
+// LINE Login PKCE config
+const CHANNEL_ID = '2010598986';
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const EDGE_FUNCTION_URL = ''; // 待填入
+
+// PKCE helpers
+function generateCodeVerifier() {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let result = '';
+  const array = new Uint8Array(64);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 64; i++) { result += charset[array[i] % charset.length]; }
+  return result;
+}
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+// LINE Login
+function loginWithLine() {
+  const verifier = generateCodeVerifier();
+  sessionStorage.setItem('pkce_verifier', verifier);
+  generateCodeChallenge(verifier).then(challenge => {
+    const state = Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem('pkce_state', state);
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: CHANNEL_ID,
+      redirect_uri: REDIRECT_URI,
+      state: state,
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      scope: 'openid profile'
+    });
+    window.location.href = 'https://access.line.me/oauth2/v2.1/authorize?' + params.toString();
+  });
+}
+
+// Handle redirect from LINE
+async function handleRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const savedState = sessionStorage.getItem('pkce_state');
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  if (code && state === savedState && verifier) {
+    sessionStorage.removeItem('pkce_state');
+    sessionStorage.removeItem('pkce_verifier');
+    window.history.replaceState({}, '', window.location.pathname);
+    try {
+      const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          client_id: CHANNEL_ID,
+          code_verifier: verifier
+        })
+      });
+      const tokenData = await tokenResponse.json();
+      if (tokenData.access_token) {
+        const profileResponse = await fetch('https://api.line.me/v2/profile', {
+          headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+        });
+        const profile = await profileResponse.json();
+        sessionStorage.setItem('line_user_id', profile.userId);
+        sessionStorage.setItem('line_display_name', profile.displayName || '');
+        sessionStorage.setItem('line_picture', profile.pictureUrl || '');
+        showForm(profile);
+      }
+    } catch (e) {
+      showError('LINE 登入失敗，請重試');
+    }
+  }
+}
+
+function showForm(profile) {
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('formSection').classList.remove('hidden');
+  document.getElementById('userBadge').textContent = '✅ ' + (profile.displayName || '已登入');
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+async function submitRegistration() {
+  const userId = document.getElementById('userId').value.trim();
+  const password = document.getElementById('password').value;
+  const certPassword = document.getElementById('certPassword').value;
+  const lineUserId = sessionStorage.getItem('line_user_id');
+  const displayName = sessionStorage.getItem('line_display_name');
+  document.getElementById('errorMsg').classList.add('hidden');
+  document.getElementById('successMsg').classList.add('hidden');
+  if (!userId || !password) { showError('請填寫身分證字號和登入密碼'); return; }
+  if (!lineUserId) { showError('請先使用 LINE 登入'); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+  try {
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_user_id: lineUserId, display_name: displayName || userId, user_id: userId.toUpperCase(), password, cert_password: certPassword || undefined })
+    });
+    if (!res.ok) { const err = await res.text(); showError('登記失敗: ' + err); btn.disabled = false; btn.textContent = '送出登記'; return; }
+    document.getElementById('formSection').classList.add('hidden');
+    document.getElementById('doneSection').classList.remove('hidden');
+  } catch (e) {
+    showError('網路錯誤，請重試');
+    btn.disabled = false;
+    btn.textContent = '送出登記';
+  }
+}
+
+handleRedirect();
+</script>
+</body>
+</html>
