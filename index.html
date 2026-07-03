@@ -78,7 +78,7 @@
     <p class="success" style="font-size:18px;margin-bottom:12px">✅ 登記完成！</p>
     <p style="color:#555;font-size:14px;margin-bottom:8px">請掃碼加入 LINE 官方帳號好友</p>
     <div class="qr-section">
-      <img id="qrImage" width="160" height="160" style="margin:0 auto;display:block;border-radius:8px" alt="LINE QR Code">
+      <img id="qrImage" width="160" height="160" style="margin:0 auto;display:block;border-radius:8px" alt="LINE QR Code" onerror="document.getElementById('qrImage').style.display='none';document.getElementById('qrFallback').classList.remove('hidden')"><div id="qrFallback" class="hidden" style="font-size:13px;color:#888;padding:8px"><a href="https://line.me/R/ti/p/@659fctvt" target="_blank" style="color:#06C755">點此加入 LINE 好友</a></div>
     </div>
     <p style="font-size:12px;color:#999;margin-top:8px">掃碼加入好友後即可每天收到損益推播</p>
   </div>
@@ -226,7 +226,7 @@ async function submitRegistration() {
     if (!res.ok) { const err = await res.text(); showError('登記失敗: ' + err); btn.disabled = false; btn.textContent = '送出登記'; return; }
     document.getElementById('formSection').classList.add('hidden');
     document.getElementById('doneSection').classList.remove('hidden');
-    document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('https://line.me/R/ti/p/@659fctvt');
+    document.getElementById('qrImage').src = 'https://quickchart.io/qr?text=' + encodeURIComponent('https://line.me/R/ti/p/@659fctvt') + '&size=160&margin=1';
   } catch (e) {
     showError('網路錯誤，請重試');
     btn.disabled = false;
