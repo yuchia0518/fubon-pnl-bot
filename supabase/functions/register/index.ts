@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 // AES-256-CBC encrypt, output compatible with Python crypto_utils.decrypt()
 async function encrypt(plainText: string, masterKeyHex: string): Promise<string> {
@@ -14,7 +14,12 @@ async function encrypt(plainText: string, masterKeyHex: string): Promise<string>
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
-  return btoa(String.fromCharCode(...combined));
+  let binary = '';
+  const bytes = new Uint8Array(combined);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -32,7 +37,8 @@ serve(async (req) => {
 
   const mk = Deno.env.get("MASTER_KEY");
   if (!mk) {
-    return new Response(JSON.stringify({ error: "MASTER_KEY not set" }), {
+    console.error("MASTER_KEY not set");
+    return new Response(JSON.stringify({ error: "Configuration error" }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
@@ -50,7 +56,8 @@ serve(async (req) => {
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
     const supaKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     if (!supaUrl || !supaKey) {
-      return new Response(JSON.stringify({ error: "Supabase credentials not configured" }), {
+      console.error("Supabase credentials not configured");
+      return new Response(JSON.stringify({ error: "Configuration error" }), {
         status: 500, headers: { "Content-Type": "application/json" },
       });
     }
@@ -80,7 +87,8 @@ serve(async (req) => {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error("Unhandled error:", e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
