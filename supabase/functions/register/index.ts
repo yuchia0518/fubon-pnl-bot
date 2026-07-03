@@ -3,28 +3,21 @@ import { createClient } from "@supabase/supabase-js";
 
 async function encrypt(plainText: string, masterKeyHex: string): Promise<string> {
   const keyBytes = hexToBytes(masterKeyHex);
-  const key = await crypto.subtle.importKey(
-    "raw", keyBytes, { name: "AES-CBC" }, false, ["encrypt"]
-  );
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-CBC" }, false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(16));
   const encoded = new TextEncoder().encode(plainText);
   const ciphertext = await crypto.subtle.encrypt({ name: "AES-CBC", iv }, key, encoded);
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
-  let binary = '';
-  const bytes = new Uint8Array(combined);
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
+  let binary = "";
+  for (let i = 0; i < combined.byteLength; i++) binary += String.fromCharCode(combined[i]);
   return btoa(binary);
 }
 
 function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
+  for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
   return bytes;
 }
 
@@ -35,32 +28,10 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   try {
-    const mk = Deno.env.get("MASTER_KEY");
-    if (!mk) {
-      return new Response(JSON.stringify({ error: "MASTER_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supaUrl = Deno.env.get("SUPABASE_URL");
-    const supaKey = Deno.env.get("SERVICE_ROLE_KEY");
-    if (!supaUrl || !supaKey) {
-      return new Response(JSON.stringify({ error: "Supabase not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(supaUrl, supaKey);
-
     const body = await req.json();
     const { line_user_id, display_name, user_id, password, cert_password } = body;
 
@@ -70,6 +41,17 @@ serve(async (req) => {
       });
     }
 
+    const mk = Deno.env.get("MASTER_KEY");
+    const supaUrl = Deno.env.get("SUPABASE_URL");
+    const supaKey = Deno.env.get("SERVICE_ROLE_KEY");
+    if (!mk || !supaUrl || !supaKey) {
+      return new Response(JSON.stringify({ error: "Configuration error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(supaUrl, supaKey);
+
     const encrypted = {
       fubon_username: await encrypt(user_id.toUpperCase(), mk),
       fubon_password: await encrypt(password, mk),
@@ -77,26 +59,35 @@ serve(async (req) => {
       fubon_ca_password: cert_password ? await encrypt(cert_password, mk) : "",
     };
 
-    const upsertData: Record<string, unknown> = {
+    const upsertData = {
       name: display_name || user_id,
       line_user_id,
       ...encrypted,
       ct_id: "setup_web",
     };
 
-    const { data, error } = await supabase
+    const { data: existing } = await supabase
       .from("users")
-      .upsert(upsertData, { onConflict: "line_user_id" })
-      .select();
+      .select("id")
+      .eq("line_user_id", line_user_id)
+      .maybeSingle();
 
-    if (error) throw error;
+    let result;
+    if (existing) {
+      result = await supabase.from("users").update(upsertData).eq("line_user_id", line_user_id).select();
+    } else {
+      result = await supabase.from("users").insert(upsertData).select();
+    }
 
-    return new Response(JSON.stringify({ success: true, user: data }), {
+    if (result.error) throw result.error;
+
+    return new Response(JSON.stringify({ success: true, user: result.data }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error", details: e instanceof Error ? e.message : String(e) }), {
+    console.error("Error:", e);
+    const msg = e instanceof Error ? e.message : JSON.stringify(e);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
