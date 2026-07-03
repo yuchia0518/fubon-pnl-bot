@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>富邦 P&amp;L Bot - 註冊</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+.container { max-width: 480px; width: 100%; padding: 24px; }
+.card { background: white; border-radius: 16px; padding: 32px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
+p.subtitle { color: #666; text-align: center; margin-bottom: 24px; font-size: 14px; }
+.btn-line { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: #06C755; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; text-decoration: none; }
+.btn-line:hover { background: #05b84c; }
+.btn-submit { width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-submit:hover { background: #1558b0; }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+.form-group input:focus { outline: none; border-color: #1a73e8; }
+.form-group input:readonly { background: #f8f9fa; color: #666; }
+.form-group .hint { font-size: 12px; color: #888; margin-top: 2px; }
+.qr-section { text-align: center; margin-top: 24px; }
+.qr-section img { width: 160px; height: 160px; }
+.qr-section p { font-size: 13px; color: #666; margin-top: 8px; }
+.hidden { display: none; }
+.msg { padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.msg.success { background: #e6f4ea; color: #1e7e34; }
+.msg.error { background: #fce8e6; color: #c5221f; }
+.user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 12px; background: #f8f9fa; border-radius: 8px; }
+.user-info img { width: 48px; height: 48px; border-radius: 50%; }
+.user-info .name { font-weight: 600; }
+.user-info .sub { font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>📊 富邦 P&amp;L Bot</h1>
+    <p class="subtitle">每日盤後自動回報損益</p>
+
+    <!-- 狀態 A: 未登入 -->
+    <div id="state-login">
+      <a id="lineLoginBtn" class="btn-line" href="#">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 5.973 2 10.855c0 2.84 1.635 5.38 4.176 7.065-.246.93-.804 2.894-.92 3.342-.147.572.212.48.46.354.17-.087 2.514-1.658 3.773-2.567A12.06 12.06 0 0012 19.71c5.523 0 10-3.973 10-8.855S17.523 2 12 2z"/></svg>
+        使用 LINE 登入
+      </a>
+      <div class="qr-section">
+        <img src="https://qr-official.line.me/sid/L/659fctvt.png" alt="LINE QR">
+        <p>加入好友後，點上方按鈕註冊</p>
+      </div>
+    </div>
+
+    <!-- 狀態 B: 已登入 -->
+    <div id="state-form" class="hidden">
+      <div class="user-info" id="userInfo"></div>
+      <div id="formMsg"></div>
+      <form id="registerForm">
+        <div class="form-group">
+          <label>名稱</label>
+          <input type="text" id="inputName" readonly>
+        </div>
+        <div class="form-group">
+          <label>富邦身分證字號</label>
+          <input type="text" id="inputUsername" placeholder="請輸入身分證字號" required>
+        </div>
+        <div class="form-group">
+          <label>富邦密碼</label>
+          <input type="password" id="inputPassword" placeholder="請輸入密碼" required>
+        </div>
+        <div class="form-group">
+          <label>CA 憑證密碼</label>
+          <input type="password" id="inputCaPwd" placeholder="預設為身分證字號" required>
+          <div class="hint">富邦證券 CA 憑證的密碼</div>
+        </div>
+        <div class="form-group">
+          <label>CA 憑證檔案 (.p12)</label>
+          <input type="file" id="inputCaFile" accept=".p12" required>
+          <div class="hint">請上傳富邦證券下載的 CA 憑證</div>
+        </div>
+        <button type="submit" class="btn-submit" id="btnSubmit">送出註冊</button>
+      </form>
+    </div>
+
+    <!-- 狀態 C: 成功 -->
+    <div id="state-success" class="hidden">
+      <div class="msg success">✅ 註冊成功！明日即可收到盤後報表。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// TODO: 部署前填入 LINE Login Channel ID
+const CHANNEL_ID = '';
+// TODO: 部署前填入 Supabase Edge Function URL
+const EDGE_FUNCTION_URL = '';
+
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const SCOPE = 'profile openid';
+
+function generateCodeVerifier() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let verifier = '';
+  const array = new Uint8Array(64);
+  crypto.getRandomValues(array);
+  for (const v of array) verifier += chars[v % chars.length];
+  return verifier;
+}
+
+async function generateCodeChallenge(verifier) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return btoa(String.fromCharCode(...new Uint8Array(hash)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const storedVerifier = sessionStorage.getItem('code_verifier');
+
+  if (code && storedVerifier) {
+    try {
+      const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: REDIRECT_URI,
+          client_id: CHANNEL_ID,
+          code_verifier: storedVerifier,
+        }),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) throw new Error('Token exchange failed');
+
+      const profileRes = await fetch('https://api.line.me/v2/profile', {
+        headers: { Authorization: 'Bearer ' + tokenData.access_token },
+      });
+      const profile = await profileRes.json();
+
+      sessionStorage.setItem('line_user_id', profile.userId);
+      sessionStorage.setItem('line_display_name', profile.displayName);
+      if (profile.pictureUrl) sessionStorage.setItem('line_picture', profile.pictureUrl);
+
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (e) {
+      document.getElementById('state-login').classList.add('hidden');
+      document.getElementById('state-form').classList.remove('hidden');
+      document.getElementById('formMsg').innerHTML = '<div class="msg error">LINE 登入失敗: ' + e.message + '</div>';
+    }
+  }
+  sessionStorage.removeItem('code_verifier');
+}
+
+function initLineLogin() {
+  const btn = document.getElementById('lineLoginBtn');
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!CHANNEL_ID) { alert('LINE Login Channel ID 尚未設定，請先填入 CHANNEL_ID'); return; }
+    const verifier = generateCodeVerifier();
+    sessionStorage.setItem('code_verifier', verifier);
+    const challenge = await generateCodeChallenge(verifier);
+    const authUrl = 'https://access.line.me/oauth2/v2.1/authorize?' + new URLSearchParams({
+      response_type: 'code',
+      client_id: CHANNEL_ID,
+      redirect_uri: REDIRECT_URI,
+      scope: SCOPE,
+      state: 'register',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    });
+    window.location.href = authUrl;
+  });
+}
+
+function showFormIfLoggedIn() {
+  const userId = sessionStorage.getItem('line_user_id');
+  if (userId) {
+    document.getElementById('state-login').classList.add('hidden');
+    document.getElementById('state-form').classList.remove('hidden');
+    document.getElementById('inputName').value = sessionStorage.getItem('line_display_name') || '';
+
+    const pic = sessionStorage.getItem('line_picture');
+    const name = sessionStorage.getItem('line_display_name') || userId;
+    const infoHtml = pic
+      ? '<img src="' + pic + '" alt=""><div><div class="name">' + escapeHtml(name) + '</div><div class="sub">已透過 LINE 認證</div></div>'
+      : '<div><div class="name">' + escapeHtml(name) + '</div><div class="sub">已透過 LINE 認證</div></div>';
+    document.getElementById('userInfo').innerHTML = infoHtml;
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!EDGE_FUNCTION_URL) { alert('Edge Function URL 尚未設定，請先填入 EDGE_FUNCTION_URL'); return; }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+
+  const fileInput = document.getElementById('inputCaFile');
+  const file = fileInput.files[0];
+  if (!file) { alert('請選擇 CA 憑證檔案'); btn.disabled = false; btn.textContent = '送出註冊'; return; }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64Content = reader.result.split(',')[1];
+    const payload = {
+      name: document.getElementById('inputName').value,
+      line_user_id: sessionStorage.getItem('line_user_id'),
+      fubon_username: document.getElementById('inputUsername').value,
+      fubon_password: document.getElementById('inputPassword').value,
+      fubon_ca_content: base64Content,
+      fubon_ca_password: document.getElementById('inputCaPwd').value,
+    };
+
+    try {
+      const res = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('state-form').classList.add('hidden');
+        document.getElementById('state-success').classList.remove('hidden');
+      } else {
+        document.getElementById('formMsg').innerHTML = '<div class="msg error">註冊失敗: ' + escapeHtml(data.error || '未知錯誤') + '</div>';
+        btn.disabled = false;
+        btn.textContent = '送出註冊';
+      }
+    } catch (e) {
+      document.getElementById('formMsg').innerHTML = '<div class="msg error">網路錯誤: ' + escapeHtml(e.message) + '</div>';
+      btn.disabled = false;
+      btn.textContent = '送出註冊';
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+(async () => {
+  await handleCallback();
+  initLineLogin();
+  showFormIfLoggedIn();
+})();
+</script>
+</body>
+</html>
