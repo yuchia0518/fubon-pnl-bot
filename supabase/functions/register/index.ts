@@ -54,7 +54,7 @@ serve(async (req) => {
     }
 
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
-    const supaKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supaKey = Deno.env.get("SERVICE_ROLE_KEY")!;
     if (!supaUrl || !supaKey) {
       console.error("Supabase credentials not configured");
       return new Response(JSON.stringify({ error: "Configuration error" }), {
