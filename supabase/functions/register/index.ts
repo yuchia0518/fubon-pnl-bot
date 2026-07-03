@@ -43,15 +43,24 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  const mk = Deno.env.get("MASTER_KEY");
-  if (!mk) {
-    console.error("MASTER_KEY not set");
-    return new Response(JSON.stringify({ error: "Configuration error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
+    const mk = Deno.env.get("MASTER_KEY");
+    if (!mk) {
+      return new Response(JSON.stringify({ error: "MASTER_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supaUrl = Deno.env.get("SUPABASE_URL");
+    const supaKey = Deno.env.get("SERVICE_ROLE_KEY");
+    if (!supaUrl || !supaKey) {
+      return new Response(JSON.stringify({ error: "Supabase not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(supaUrl, supaKey);
+
     const body = await req.json();
     const { line_user_id, display_name, user_id, password, cert_password } = body;
 
@@ -61,46 +70,23 @@ serve(async (req) => {
       });
     }
 
-    const supaUrl = Deno.env.get("SUPABASE_URL")!;
-    const supaKey = Deno.env.get("SERVICE_ROLE_KEY")!;
-    if (!supaUrl || !supaKey) {
-      console.error("Supabase credentials not configured");
-      return new Response(JSON.stringify({ error: "Configuration error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(supaUrl, supaKey);
-
-    let fubon_ca_content = "";
-    if (!cert_password) {
-      const { data: existing } = await supabase
-        .from("users")
-        .select("fubon_ca_content")
-        .not("fubon_ca_content", "is", null)
-        .limit(1)
-        .maybeSingle();
-
-      if (existing?.fubon_ca_content) {
-        fubon_ca_content = existing.fubon_ca_content;
-      }
-    }
-
     const encrypted = {
       fubon_username: await encrypt(user_id.toUpperCase(), mk),
       fubon_password: await encrypt(password, mk),
-      fubon_ca_content: fubon_ca_content ? await encrypt(fubon_ca_content, mk) : "",
+      fubon_ca_content: "",
       fubon_ca_password: cert_password ? await encrypt(cert_password, mk) : "",
+    };
+
+    const upsertData: Record<string, unknown> = {
+      name: display_name || user_id,
+      line_user_id,
+      ...encrypted,
+      ct_id: "setup_web",
     };
 
     const { data, error } = await supabase
       .from("users")
-      .upsert({
-        name: display_name || user_id,
-        line_user_id,
-        ...encrypted,
-        ct_id: "setup_web",
-      }, { onConflict: "line_user_id" })
+      .upsert(upsertData, { onConflict: "line_user_id" })
       .select();
 
     if (error) throw error;
@@ -110,7 +96,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("Unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error", details: e instanceof Error ? e.message : String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
