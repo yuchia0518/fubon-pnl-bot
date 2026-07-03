@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
-// AES-256-CBC encrypt, output compatible with Python crypto_utils.decrypt()
 async function encrypt(plainText: string, masterKeyHex: string): Promise<string> {
   const keyBytes = hexToBytes(masterKeyHex);
   const key = await crypto.subtle.importKey(
@@ -10,7 +9,6 @@ async function encrypt(plainText: string, masterKeyHex: string): Promise<string>
   const iv = crypto.getRandomValues(new Uint8Array(16));
   const encoded = new TextEncoder().encode(plainText);
   const ciphertext = await crypto.subtle.encrypt({ name: "AES-CBC", iv }, key, encoded);
-  // Combine iv + ciphertext (same format as Python: base64(iv + ciphertext))
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
@@ -55,9 +53,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { name, line_user_id, fubon_username, fubon_password, fubon_ca_content, fubon_ca_password } = body;
+    const { line_user_id, display_name, user_id, password, cert_password } = body;
 
-    if (!name || !line_user_id || !fubon_username || !fubon_password || !fubon_ca_content || !fubon_ca_password) {
+    if (!line_user_id || !user_id || !password) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -74,17 +72,31 @@ serve(async (req) => {
 
     const supabase = createClient(supaUrl, supaKey);
 
+    let fubon_ca_content = "";
+    if (!cert_password) {
+      const { data: existing } = await supabase
+        .from("users")
+        .select("fubon_ca_content")
+        .not("fubon_ca_content", "is", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (existing?.fubon_ca_content) {
+        fubon_ca_content = existing.fubon_ca_content;
+      }
+    }
+
     const encrypted = {
-      fubon_username: await encrypt(fubon_username, mk),
-      fubon_password: await encrypt(fubon_password, mk),
-      fubon_ca_content: await encrypt(fubon_ca_content, mk),
-      fubon_ca_password: await encrypt(fubon_ca_password, mk),
+      fubon_username: await encrypt(user_id.toUpperCase(), mk),
+      fubon_password: await encrypt(password, mk),
+      fubon_ca_content: fubon_ca_content ? await encrypt(fubon_ca_content, mk) : "",
+      fubon_ca_password: cert_password ? await encrypt(cert_password, mk) : "",
     };
 
     const { data, error } = await supabase
       .from("users")
       .upsert({
-        name,
+        name: display_name || user_id,
         line_user_id,
         ...encrypted,
         ct_id: "setup_web",
