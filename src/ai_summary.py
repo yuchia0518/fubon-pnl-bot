@@ -1,5 +1,5 @@
 from google import genai
-from src.stock_names import ETF_NAMES
+from src.stock_names import ETF_SYMBOLS
 
 FEE_RATE = 0.004418
 
@@ -32,7 +32,7 @@ def generate_ai_summary(
         diff = mv - yesterday_mv
         sign = "+" if diff >= 0 else ""
         line = f"{d['stock_name']}({sym})：市值變動 {sign}{diff} 元，持有 {d['qty']} 股，收盤價 {d['today_price']} 元"
-        if sym in ETF_NAMES:
+        if sym in ETF_SYMBOLS:
             etf_changes.append((abs(diff), line))
         else:
             stock_changes.append((abs(diff), line))

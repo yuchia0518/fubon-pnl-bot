@@ -1,7 +1,7 @@
 import datetime
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-from src.stock_names import ETF_NAMES
+from src.stock_names import ETF_SYMBOLS
 
 FEE_RATE = 0.004418
 
@@ -65,7 +65,7 @@ def format_report_message(
         if detail["qty"] <= 0 and detail["yesterday_qty"] <= 0:
             continue
         mv_diff, line = _build_stock_line(sym, detail)
-        if sym in ETF_NAMES:
+        if sym in ETF_SYMBOLS:
             etfs.append((mv_diff, line))
         else:
             stocks.append((mv_diff, line))
