@@ -21,11 +21,35 @@ def _build_stock_line(sym, detail):
     return (mv_diff, f"{arrow} {label}：{yesterday_mv:,.0f} ➔ {today_mv:,.0f} 元 ({diff_prefix}{mv_diff:,.0f})，收盤價 {detail['today_price']:,.2f} 元，持有 {detail['qty']:,.0f} 股")
 
 
+def _build_tx_block(transactions: list) -> str:
+    if not transactions:
+        return ""
+    agg = {}
+    for tx in transactions:
+        sym = tx["symbol"]
+        side = tx["side"]
+        qty = tx["qty"]
+        price = tx["price"]
+        key = (sym, side)
+        if key in agg:
+            agg[key]["qty"] += qty
+            agg[key]["price"] = price
+        else:
+            agg[key] = {"qty": qty, "price": price}
+
+    lines = []
+    for (sym, side), info in sorted(agg.items()):
+        action = "買進" if side == "buy" else "賣出"
+        lines.append(f"　{sym} {action} {info['qty']:,.0f} 股（成交價 {info['price']:,.2f} 元）")
+    return "🔹 今日交易：\n" + "\n".join(lines) + "\n\n"
+
+
 def format_report_message(
     user_name: str,
     pnl_report: dict,
     total_market_val: float,
     total_unrealized_pnl: float,
+    transactions: list | None = None,
 ) -> str:
     today_str = datetime.datetime.now().strftime("%Y 年 %m 月 %d 日")
     pnl_val = pnl_report["total_pnl"]
@@ -56,6 +80,10 @@ def format_report_message(
     msg += (
         f"{unrealized_sign} 累積未實現損益：{unreal_prefix}$ {total_unrealized_pnl:,.0f} 元\n\n"
     )
+
+    tx_block = _build_tx_block(transactions or [])
+    if tx_block:
+        msg += tx_block
 
     msg += "📈 今日持股庫存變動：\n"
 

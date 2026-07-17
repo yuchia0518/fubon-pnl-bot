@@ -70,7 +70,8 @@ def main():
             print(f"     每日損益: {pnl_report}", flush=True)
 
             msg_detail = format_report_message(
-                u["name"], pnl_report, total_market_val, total_unrealized_pnl
+                u["name"], pnl_report, total_market_val, total_unrealized_pnl,
+                transactions=today_txs,
             )
 
             ai_summary_text = generate_ai_summary(
